@@ -12,6 +12,7 @@
 	You should have received a copy of the GNU General Public License along with
 	httest. If not, see <https://www.gnu.org/licenses/>.
 */
+
 module main
 
 import os
@@ -33,8 +34,7 @@ fn setup_logger(pref Preferences) !structlog.StructuredLog {
 		else {
 			log_colors = false
 			file := os.open_file(pref.log_output, 'a+') or {
-				eprintln('E: could not open log file ${pref.log_output}: ${err}')
-				exit(1)
+				return error('E: could not open log file ${pref.log_output}: ${err}')
 			}
 			io.Writer(file)
 		}

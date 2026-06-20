@@ -22,7 +22,10 @@ fn main() {
 	mut pref, no_matches := flag.to_struct[Preferences](os.args,
 		style: .go_flag
 		skip:  1
-	)!
+	) or {
+		eprintln('E: cmdline parsing error: ${err}')
+		exit(1)
+	}
 
 	help := flag.to_doc[Preferences](
 		style:   .v
@@ -48,12 +51,24 @@ fn main() {
 	}
 
 	if pref.ipv4_only && pref.ipv6_only {
-		eprintln('E: cannot use both -ipv4-only and -ipv6-only')
+		eprintln('E: cannot use both -ipv4 and -ipv6')
+		exit(1)
 	}
 
-	log := setup_logger(pref)!
-	request_handler := setup_request_handler(pref, log)!
-	mut server := setup_server(pref, request_handler, log)!
+	log := setup_logger(pref) or {
+		eprintln('E: ${err}')
+		exit(1)
+	}
+
+	request_handler := setup_request_handler(pref, log) or {
+		eprintln('E: ${err}')
+		exit(1)
+	}
+
+	mut server := setup_server(pref, request_handler, log) or {
+		eprintln('E: ${err}')
+		exit(1)
+	}
 
 	signal_handler := fn [mut server, log] (sig os.Signal) {
 		log.info().message('Exiting due signal').add('signal', 'SIG' + sig.str().to_upper_ascii()).send()
