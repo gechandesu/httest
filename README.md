@@ -8,10 +8,12 @@ requests, simulate delays and errors, or run CGI scripts during integration test
 Install the [V compiler](https://github.com/vlang/v#installing-v-from-source), then run:
 
 ```
+v install
 v .
 ```
 
-The binary is written to the current directory as `httest`.
+The binary is written to the current directory as `httest`. Pre-built binaries
+can be found on the [releases](https://github.com/gechandesu/httest/releases/latest) page.
 
 ## Usage
 
