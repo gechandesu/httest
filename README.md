@@ -88,6 +88,9 @@ Options:
                             milliseconds by default).
   -cgi-script <string>      path to CGI script to execute for each request.
 
+When -cgi-script is set, the script handles the request instead of the static
+-respond* options.
+
 Log fields control:
 
 Below are listed all available log fields in the order they appear in the logs.
