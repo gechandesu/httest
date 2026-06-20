@@ -1,6 +1,7 @@
 # Binaries for programs and plugins
 main
 httest
+httest_*
 *.exe
 *.exe~
 *.so
@@ -25,3 +26,5 @@ bin/
 
 # Ignore installed modules through `v install --local`:
 modules/
+
+TODO
