@@ -64,7 +64,9 @@ fn new_socket(addrs []netio.SocketAddr, ip_ver IpVersion, backlog int) !netio.So
 		socket.set_option(netio.sol_socket, netio.so_reuseaddr, 1)!
 		if socket_addr.family() != netio.af_unix {
 			socket.set_option(netio.ipproto_tcp, netio.tcp_nodelay, 1)!
-			socket.set_option(netio.ipproto_tcp, netio.tcp_quickack, 1)!
+			$if linux {
+				socket.set_option(netio.ipproto_tcp, netio.tcp_quickack, 1)!
+			}
 		}
 		if socket_addr.family() == netio.af_inet6 {
 			socket.set_option(netio.ipproto_ipv6, netio.ipv6_v6only, ip_ver == .ipv6)!
