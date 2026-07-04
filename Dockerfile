@@ -7,7 +7,7 @@ RUN git clone --depth=1 https://github.com/vlang/v /opt/v && make -C /opt/v && /
 
 FROM vlang AS builder
 COPY . .
-RUN v install
+RUN v install --local
 RUN v -prod -cflags '-static -s' -d version="$(git describe HEAD)+$(v version | tr ' ' '-')" . -o /httest
 
 FROM scratch AS prod
