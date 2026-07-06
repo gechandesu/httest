@@ -7,8 +7,12 @@ RUN git clone --depth=1 https://github.com/vlang/v /opt/v && make -C /opt/v && /
 
 FROM vlang AS builder
 COPY . .
-RUN v install --local
-RUN v -prod -cflags '-static -s' -d version="$(git describe HEAD)+$(v version | tr ' ' '-')" . -o /httest
+RUN mkdir /modules && \
+    git clone --depth=1 https://github.com/gechandesu/netaddr /modules/netaddr && \
+    git clone --depth=1 https://github.com/gechandesu/netio /modules/netio && \
+    git clone --depth=1 https://github.com/gechandesu/structlog /modules/structlog
+ENV VFLAGS='-path "/modules|@vlib"'
+RUN v -prod -cflags '-static -s' -d version="$(v -e 'import v.vmod; println(vmod.from_file("v.mod")!.version)')+$(v version | tr ' ' '-')" . -o /httest
 
 FROM scratch AS prod
 COPY --from=builder /httest .

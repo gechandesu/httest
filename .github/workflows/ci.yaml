@@ -2,11 +2,12 @@ name: httest CI
 
 on:
   push:
-    branches: [ 'master' ]
+    tags:
+      - v*.**
   workflow_dispatch: {}
 
 env:
-  IMAGE: httest
+  IMAGE: ${{ github.actor }}/httest
   REGISTRY: ghcr.io
 
 jobs:
@@ -42,8 +43,6 @@ jobs:
           context: .
           file: Dockerfile
           push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE }}:latest
-            ${{ env.REGISTRY }}/${{ env.IMAGE }}:${{ github.sha }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
