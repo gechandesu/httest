@@ -3,7 +3,7 @@
 A configurable HTTP test server written in V. Use it to mock backends, inspect
 requests, simulate delays and errors, or run CGI scripts during integration testing.
 
-## Build
+## Build from source
 
 Install the [V compiler](https://github.com/vlang/v#installing-v-from-source), then run:
 
@@ -15,14 +15,60 @@ v .
 The binary is written to the current directory as `httest`. Pre-built binaries
 can be found on the [releases](https://github.com/gechandesu/httest/releases/latest) page.
 
+## Docker
+
+httest is available in Docker. The image is OS-less and pretty small, only about ~3 MiB.
+
+Pull the image:
+
+```
+docker pull ghcr.io/gechandesu/httest:latest
+```
+
+See help:
+
+```
+docker run --rm httest --help
+```
+
+Run httest on any address on 8080 port:
+
+```
+docker run --rm --network host httest :8080
+```
+
 ## Usage
 
-```bash
+```
 httest [OPTION]... [ADDR]
 ```
 
-`ADDR` is optional. It may be an IPv4/IPv6 address, hostname, or UNIX socket path.
-When omitted, the server listens on port 9000 on all interfaces.
+`ADDR` is optional. It may be an IPv4/IPv6 address, port, hostname, or UNIX
+socket path. When omitted, the server listens on port 9000 on all interfaces.
+
+Run httest on default port on any address:
+
+```
+httest
+```
+
+Listen on TCP 8080 on any address:
+
+```
+httest :8080
+```
+
+Listen on `localhost` domain (will be resolved to the IP address) on default port:
+
+```
+httest localhost
+```
+
+Listen on UNIX domain socket:
+
+```
+httest /tmp/test.sock
+```
 
 ### Examples
 
