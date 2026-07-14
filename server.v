@@ -58,7 +58,7 @@ fn setup_server(pref Preferences, rh HTTPRequestHandler, log structlog.Structure
 
 fn new_socket(addrs []netio.SocketAddr, ip_ver IpVersion, backlog int) !netio.Socket {
 	mut socket := netio.Socket{}
-
+	mut success := false
 	for socket_addr in addrs {
 		socket = netio.Socket.new(socket_addr.family(), netio.sock_stream, 0) or { continue }
 		socket.set_option(netio.sol_socket, netio.so_reuseaddr, 1)!
@@ -75,6 +75,10 @@ fn new_socket(addrs []netio.SocketAddr, ip_ver IpVersion, backlog int) !netio.So
 			socket.close() or {}
 			continue
 		}
+		success = true
+	}
+	if !success {
+		return error('no valid address to bind')
 	}
 	socket.listen(backlog)!
 	return socket
@@ -119,7 +123,7 @@ fn resolve_addrs(raw_addr string, ip_ver IpVersion) ![]netio.SocketAddr {
 		}
 		// If address in not IPv4 or IPv6 string try to resolve it as a domain name...
 		addrs := netio.addr_info(
-			node:     addr
+			node:     host_str
 			service:  listen_port.str()
 			family:   if ip_ver == .ipv4 {
 				netio.af_inet
@@ -129,6 +133,7 @@ fn resolve_addrs(raw_addr string, ip_ver IpVersion) ![]netio.SocketAddr {
 				netio.af_unspec
 			}
 			socktype: netio.sock_stream
+			flags:    netio.ai_addrconfig
 		)!
 		return addrs.map(fn (elem netio.AddrInfo) netio.SocketAddr {
 			return elem.addr

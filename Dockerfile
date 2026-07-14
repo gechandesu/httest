@@ -11,7 +11,7 @@ RUN mkdir /modules && \
     git clone --depth=1 https://github.com/gechandesu/netaddr /modules/netaddr && \
     git clone --depth=1 https://github.com/gechandesu/netio /modules/netio && \
     git clone --depth=1 https://github.com/gechandesu/structlog /modules/structlog
-ENV VFLAGS='-path "/modules|@vlib"'
+ENV VFLAGS='-path modules\|@vlib'
 RUN v -prod -cflags '-static -s' -d version="$(v -e 'import v.vmod; println(vmod.from_file("v.mod")!.version)')+$(v version | tr ' ' '-')" . -o /httest
 
 FROM scratch AS prod
