@@ -120,9 +120,13 @@ fn parse_cgi_output(output string) !http.Response {
 			if line == '' {
 				continue
 			}
-			key, value := line.split_once(':') or { continue }
-			key_lower := key.to_lower()
-			match key_lower {
+			mut key, mut value := line.split_once(':') or { continue }
+			key = key.trim_space()
+			value = value.trim_space()
+			if key == '' || value == '' {
+				continue // skip invalid headers
+			}
+			match key.to_lower() {
 				'status' {
 					parts := value.split(' ')
 					if parts.len == 0 {
