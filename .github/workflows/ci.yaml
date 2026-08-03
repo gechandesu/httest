@@ -71,8 +71,13 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Run commands inside container
-        run: v release.vsh
+      - name: Setup V
+        uses: vlang/setup-v@v1.7
+        with:
+          check-latest: true
+
+      - name: Make release builds
+        run: env VERSION=${{ github.ref_name }} DOCKER_IMAGE=${{ env.BUILD_IMAGE }} v release.vsh
 
       - name: Create GitHub Release
         uses: ncipollo/release-action@v1
@@ -80,5 +85,5 @@ jobs:
           artifacts: 'httest_*'
           tag: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
-          draft: false
+          draft: true
           prerelease: false
