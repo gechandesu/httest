@@ -78,7 +78,9 @@ jobs:
           check-latest: true
 
       - name: Make release builds
-        run: env VERSION=${{ github.ref_name }} DOCKER_IMAGE=${{ env.BUILD_IMAGE }} v release.vsh
+        run: |
+          v install https://github.com/gechandesu/releasekit
+          env VERSION=${{ github.ref_name }} DOCKER_IMAGE=${{ env.BUILD_IMAGE }} v release.vsh
 
       - name: Create GitHub Release
         uses: ncipollo/release-action@v1
