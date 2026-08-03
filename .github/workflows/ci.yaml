@@ -9,9 +9,10 @@ on:
 env:
   IMAGE: ${{ github.actor }}/httest
   REGISTRY: ghcr.io
+  BUILD_IMAGE: httest-builder
 
 jobs:
-  docker-image:
+  build-docker-image:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -39,7 +40,7 @@ jobs:
         id: build-and-push
         uses: docker/build-push-action@v7
         with:
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64,linux/arm64,linux/arm/v7,linux/riscv64
           context: .
           file: Dockerfile
           push: true
@@ -48,3 +49,36 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE }}:${{ github.ref_name }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker Image with Cache
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: ${{ env.BUILD_IMAGE }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Run commands inside container
+        run: v release.vsh
+
+      - name: Create GitHub Release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: 'httest_*'
+          tag: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          draft: false
+          prerelease: false
