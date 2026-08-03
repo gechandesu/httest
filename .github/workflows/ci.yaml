@@ -66,6 +66,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
+          file: Dockerfile.cross
           load: true
           tags: ${{ env.BUILD_IMAGE }}:latest
           cache-from: type=gha
