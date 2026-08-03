@@ -2,6 +2,7 @@
 main
 httest
 httest_*
+release
 *.exe
 *.exe~
 *.so

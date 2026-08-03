@@ -1,0 +1,37 @@
+FROM debian:trixie
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN export DEBIAN_FRONTEND=noninteractive && \
+    apt-get update && \
+    apt-get install --assume-yes --no-install-recommends --no-install-suggests \
+        ca-certificates git build-essential && \
+    apt-get clean
+
+RUN git clone --depth=1 https://github.com/vlang/v /opt/v && \
+    make -C /opt/v && /opt/v/v symlink && \
+    v version
+
+RUN export DEBIAN_FRONTEND=noninteractive && \
+    dpkg --add-architecture arm64 && \
+    dpkg --add-architecture armhf && \
+    dpkg --add-architecture riscv64 && \
+    apt-get update && \
+    apt-get install --assume-yes --no-install-recommends --no-install-suggests \
+        crossbuild-essential-arm64 \
+        crossbuild-essential-armhf \
+        crossbuild-essential-riscv64 \
+        gcc-mingw-w64-x86-64 && \
+    apt-get clean
+
+RUN mkdir /tmp/vmodules && \
+    git clone --depth=1 https://github.com/gechandesu/netaddr /tmp/vmodules/netaddr && \
+    git clone --depth=1 https://github.com/gechandesu/netio /tmp/vmodules/netio && \
+    git clone --depth=1 https://github.com/gechandesu/structlog /tmp/vmodules/structlog
+
+WORKDIR /workspace
+
+USER 1000:1000
+
+ENV VMODULES=/tmp/vmodules
+ENV VCACHE=/tmp/vcache

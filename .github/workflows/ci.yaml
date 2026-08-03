@@ -9,9 +9,10 @@ on:
 env:
   IMAGE: ${{ github.actor }}/httest
   REGISTRY: ghcr.io
+  BUILD_IMAGE: httest-builder
 
 jobs:
-  docker-image:
+  build-docker-image:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -39,7 +40,7 @@ jobs:
         id: build-and-push
         uses: docker/build-push-action@v7
         with:
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64,linux/arm64,linux/arm/v7,linux/riscv64
           context: .
           file: Dockerfile
           push: true
@@ -48,3 +49,44 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE }}:${{ github.ref_name }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build Docker image for cross-compilation
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile.cross
+          load: true
+          tags: ${{ env.BUILD_IMAGE }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Setup V
+        uses: vlang/setup-v@v1.7
+        with:
+          check-latest: true
+
+      - name: Make release builds
+        run: |
+          v install https://github.com/gechandesu/releasekit
+          env VERSION=${{ github.ref_name }} DOCKER_IMAGE=${{ env.BUILD_IMAGE }} v release.vsh
+
+      - name: Create GitHub Release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: 'httest_*'
+          tag: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          draft: true
+          prerelease: false
