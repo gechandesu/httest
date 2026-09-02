@@ -84,6 +84,9 @@ jobs:
           VERSION: ${{ github.ref_name }}
           DOCKER_IMAGE: ${{ env.BUILD_IMAGE }}
         run: |
+          id
+          pwd
+          ls -alFh .
           v install https://github.com/gechandesu/releasekit
           v release.vsh
 
