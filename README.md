@@ -28,13 +28,13 @@ docker pull ghcr.io/gechandesu/httest:latest
 See help:
 
 ```
-docker run --rm httest --help
+docker run --rm ghcr.io/gechandesu/httest --help
 ```
 
 Run httest on any address on 8080 port:
 
 ```
-docker run --rm --network host httest :8080
+docker run --rm --network host ghcr.io/gechandesu/httest :8080
 ```
 
 ## Usage
