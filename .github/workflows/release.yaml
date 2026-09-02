@@ -82,6 +82,7 @@ jobs:
           VMODULES: /tmp/vmodules
           VCACHE: /tmp/vcache
           VERSION: ${{ github.ref_name }}
+          DOCKER_USER: '1001:1001'
           DOCKER_IMAGE: ${{ env.BUILD_IMAGE }}
         run: |
           v install https://github.com/gechandesu/releasekit

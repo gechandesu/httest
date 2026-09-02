@@ -4,6 +4,7 @@ import build
 import os
 import releasekit as rk
 
+const docker_user = os.getenv_opt('DOCKER_USER') or { '1000:1000' }
 const docker_image = os.getenv_opt('DOCKER_IMAGE') or { 'httest-builder' }
 const docker_file = 'Dockerfile.cross'
 
@@ -64,7 +65,7 @@ for target_name, target in targets {
 		name: target_name
 		help: 'Build app for ${target_name.to_upper_ascii()}'
 		run:  fn [target] (_ build.Task) ! {
-			mut args := ['run', '--rm', '-v', '.:/workspace', '-w', '/workspace']
+			mut args := ['run', '--rm', '-v', '.:/workspace', '-w', '/workspace', '-u', docker_user]
 			args << docker_image
 			args << 'v'
 			args << target.build_args()
