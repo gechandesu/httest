@@ -12,7 +12,6 @@
 	You should have received a copy of the GNU General Public License along with
 	httest. If not, see <https://www.gnu.org/licenses/>.
 */
-
 module main
 
 import netaddr
@@ -38,21 +37,45 @@ fn setup_server(pref Preferences, rh HTTPRequestHandler, log structlog.Structure
 		ip_ver = .ipv6
 	}
 	addrs := resolve_addrs(pref.listen_addr, ip_ver)!
+	on_running := fn [log] (mut s http.Server) {
+		log.info().message('Listening on ${s.addr}...').send()
+	}
+	if pref.cert != '' {
+		if addrs.len == 0 {
+			return error('no valid address to bind')
+		}
+		if addrs.first().family() == netio.af_unix {
+			return error('TLS is not supported on UNIX sockets')
+		}
+		// vfmt off
+		return http.Server{
+			addr:         addrs.first().str()
+			handler:      rh
+			on_running:   on_running
+			cert:         pref.cert
+			cert_key:     pref.cert_key
+			enable_http2: pref.http2
+
+			show_startup_message: false
+		}
+		// vfmt on
+	}
+
 	socket := new_socket(addrs, ip_ver, pref.backlog)!
 	tcp_socket := net.tcp_socket_from_handle_raw(socket.fd)
 	listener := net.TcpListener{
 		sock: tcp_socket
 	}
-	on_running := fn [log] (mut s http.Server) {
-		log.info().message('Listening on ${s.addr}...').send()
-	}
+	// vfmt off
 	server := http.Server{
-		listener:   listener
-		handler:    rh
-		on_running: on_running
+		listener:     listener
+		handler:      rh
+		on_running:   on_running
+		enable_http2: pref.http2
 
 		show_startup_message: false
 	}
+	// vfmt on
 	return server
 }
 
@@ -122,6 +145,7 @@ fn resolve_addrs(raw_addr string, ip_ver IpVersion) ![]netio.SocketAddr {
 			]
 		}
 		// If address in not IPv4 or IPv6 string try to resolve it as a domain name...
+		// vfmt off
 		addrs := netio.addr_info(
 			node:     host_str
 			service:  listen_port.str()
@@ -135,6 +159,7 @@ fn resolve_addrs(raw_addr string, ip_ver IpVersion) ![]netio.SocketAddr {
 			socktype: netio.sock_stream
 			flags:    netio.ai_addrconfig
 		)!
+		// vfmt on
 		return addrs.map(fn (elem netio.AddrInfo) netio.SocketAddr {
 			return elem.addr
 		})

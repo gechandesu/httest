@@ -54,6 +54,18 @@ fn main() {
 		eprintln('E: cannot use both -ipv4 and -ipv6')
 		exit(1)
 	}
+	if (pref.cert == '') != (pref.cert_key == '') {
+		eprintln('E: -cert and -cert-key must be used together')
+		exit(1)
+	}
+	if pref.cert != '' && !os.is_file(pref.cert) {
+		eprintln('E: certificate file not found: ${pref.cert}')
+		exit(1)
+	}
+	if pref.cert_key != '' && !os.is_file(pref.cert_key) {
+		eprintln('E: certificate key file not found: ${pref.cert_key}')
+		exit(1)
+	}
 
 	log := setup_logger(pref) or {
 		eprintln('E: ${err}')

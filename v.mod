@@ -1,7 +1,7 @@
 Module {
 	name: 'httest'
 	description: 'No-op HTTP server for testing purposes'
-	version: '0.1.1'
+	version: '0.2.0'
 	license: 'GPL-3.0-or-later'
 	dependencies: [
 		'https://github.com/gechandesu/netaddr',

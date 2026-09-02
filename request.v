@@ -12,7 +12,6 @@
 	You should have received a copy of the GNU General Public License along with
 	httest. If not, see <https://www.gnu.org/licenses/>.
 */
-
 module main
 
 import net.http
@@ -30,7 +29,9 @@ fn setup_request_handler(pref Preferences, log structlog.StructuredLog) !HTTPReq
 	handler.response_code = pref.respond
 	handler.response_body = pref.respond_body
 	for header in pref.respond_header {
+		// vfmt off
 		header_key, header_value := header.split_once(':') or { '', '' }
+		// vfmt on
 		if header_key != '' {
 			handler.response_headers[header_key] = header_value
 		}
@@ -64,7 +65,9 @@ fn setup_request_handler(pref Preferences, log structlog.StructuredLog) !HTTPReq
 			else {}
 		}
 
+		// vfmt off
 		lo_str, hi_str := delay_str.split_once('-') or { delay_str, '' }
+		// vfmt on
 		delay_lo = strconv.parse_int(lo_str, 10, 64) or { 0 }
 		delay_hi = strconv.parse_int(hi_str, 10, 64) or { 0 }
 		handler.response_delay = fn [delay_lo, delay_hi, delay_unit] () time.Duration {
@@ -115,13 +118,23 @@ fn setup_request_handler(pref Preferences, log structlog.StructuredLog) !HTTPReq
 	return handler
 }
 
-const default_log_fields = LogField.id | .method | .path | .status | .recv | .sent | .elapsed
+const default_log_fields = LogField.id | .protocol | .method | .path | .status | .recv | .sent | .elapsed
 
-const default_log_fields_list = [LogField.id, .method, .path, .status, .recv, .sent, .elapsed]
+const default_log_fields_list = [
+	LogField.id,
+	.protocol,
+	.method,
+	.path,
+	.status,
+	.recv,
+	.sent,
+	.elapsed,
+]
 
 @[flag]
 enum LogField {
 	id
+	protocol
 	method
 	path
 	status
@@ -147,26 +160,25 @@ mut:
 	cgi_script        string
 }
 
-type DelayFn = fn () time.Duration
+type DelayFn = fn() time.Duration
 
 fn (mut handler HTTPRequestHandler) handle(req http.Request) http.Response {
 	started_at := time.now()
 	mut request_id := rand.uuid_v4()
 
-	handler.log.debug().add('id', request_id).message('Start processing request').send()
+	handler.log.debug().add('id', request_id).add('protocol', req.version.str()).message('Start processing request').send()
 
 	if handler.request_id_header != '' {
-		handler.log.trace().add('id', request_id).message('Read request ID from header')
-			.add('header', handler.request_id_header).send()
+		handler.log.trace().add('id', request_id).message('Read request ID from header').add('header', handler.request_id_header).send()
 		new_id := req.header.get_custom(handler.request_id_header, exact: false) or { request_id }
 		handler.log.trace().add('id', request_id).message('New request ID').add('new_id', new_id).send()
 		request_id = new_id
 	}
 
 	mut response := http.Response{
-		body:        handler.response_body
+		body: handler.response_body
 		status_code: handler.response_code
-		header:      http.new_custom_header_from_map(handler.response_headers) or { http.Header{} }
+		header: http.new_custom_header_from_map(handler.response_headers) or { http.Header{} }
 	}
 
 	defer {
@@ -175,6 +187,7 @@ fn (mut handler HTTPRequestHandler) handle(req http.Request) http.Response {
 		mut f := []structlog.Field{cap: 11}
 		// vfmt off
 		if lf.has(.id)         { f << structlog.Field{name: 'id', value: request_id} }
+		if lf.has(.protocol)   { f << structlog.Field{name: 'protocol', value: req.version.str()} }
 		if lf.has(.method)     { f << structlog.Field{name: 'method', value: req.method.str()} }
 		if lf.has(.path)       { f << structlog.Field{name: 'path', value: req.url} }
 		if lf.has(.status)     { f << structlog.Field{name: 'status', value: response.status_code} }
@@ -192,8 +205,8 @@ fn (mut handler HTTPRequestHandler) handle(req http.Request) http.Response {
 	if handler.cgi_script != '' {
 		handler.log.trace().message('Starting CGI-script').add('script', handler.cgi_script).send()
 		response = run_cgi_script(handler.cgi_script, req) or {
-			handler.log.error().add('id', request_id).message('CGI script failed').add('error',
-				err.msg()).send()
+			handler.log.error().add('id', request_id).message('CGI script failed').add('error', err.msg()).send()
+			// vfmt off
 			http.Response{
 				status_code: 502
 				body:        'CGI script error: ${err.msg()}\n'
@@ -201,6 +214,7 @@ fn (mut handler HTTPRequestHandler) handle(req http.Request) http.Response {
 					'Content-Type': 'text/plain'
 				}) or { http.Header{} }
 			}
+			// vfmt on
 		}
 	}
 
