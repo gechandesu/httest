@@ -79,7 +79,7 @@ jobs:
 
       - name: Make release builds
         run: |
-          v install https://github.com/gechandesu/releasekit
+          env VMODULES=/tmp/vmodules VCACHE=/tmp/vcache v install https://github.com/gechandesu/releasekit
           env VERSION=${{ github.ref_name }} DOCKER_IMAGE=${{ env.BUILD_IMAGE }} v release.vsh
 
       - name: Create GitHub Release
