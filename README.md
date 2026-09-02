@@ -104,66 +104,6 @@ Then:
 curl 'http://127.0.0.1:9000/test?name=world' -d 'payload'
 ```
 
-## Synopsis
-
-```
-Usage: httest [OPTION]... [ADDR]
-
-ADDR may be an IPv4 or IPv6 IP-address, domain name or UNIX-socket path.
-
-Options:
-  -help                     print this help message and exit.
-  -version                  print version info and exit.
-  -ipv4                     enable IPv4-only mode.
-  -ipv6                     enable IPv6-only mode.
-  -backlog <int>            max number of parallel connections on socket,
-                            defaults to 128.
-  -log-level <string>       log level, one of: none, fatal, error, warn,
-                            info, debug, trace.
-  -log-output <string>      where to write logs: stdout, stderr (default) or
-                            filepath.
-  -F, -log-fields <string>  See Log fields control below.
-  -request-id-header <string>
-                            read request ID from header.
-  -respond <int>            response HTTP status code, 200 by default.
-  -H, -respond-header <string> (allowed multiple times)
-                            response header as 'key: value' pair.
-  -respond-body <string>    response body as string.
-  -respond-file <string>    read response body from file.
-  -response-delay <string>  response delay e.g 1s, 3m, 100-900ms, 300 (in
-                            milliseconds by default).
-  -cgi-script <string>      path to CGI script to execute for each request.
-
-When -cgi-script is set, the script handles the request instead of the static
--respond* options.
-
-Log fields control:
-
-Below are listed all available log fields in the order they appear in the logs.
-Fields marked by * are non-defaults.
-
-  id          auto-generated or passed through -request-id-header request ID.
-  method      used HTTP method.
-  path        request path.
-  status      HTTP response status code as integer.
-  recv        size of request body in bytes.
-  sent        size of response body in bytes.
-  elapsed     request processing time excluding HTTP parsing time.
-  remote*     remote address from Remote-Addr header.
-  user_agent* request User-Agent header value.
-  headers*    all request headers separated by `;`.
-  body*       request body text as is.
-
-You can add or remove fields from the HTTP request log using the -log-fields
-(-F) option. To add a field, specify its name without a prefix or with a `+`
-prefix. For example `-F +body` enables request body logging. You can list
-multiple fields separated by commas. `-` prefix disables the log field. There
-is also two special values `all` and `default` (for default set). Examples:
-  httest -F +headers,body,-id
-  httest -F +all
-  httest -F -default,+id,method,path,status,elapsed
-```
-
 ## CGI support
 
 With `-cgi-script`, `httest` runs the given executable once per HTTP request.
@@ -194,11 +134,90 @@ Supported CGI response headers include:
 If the script prints no header block, the entire output is returned as the body
 with status 200.
 
+## HTTP/2 support
+
+Run cleartext HTTP/2.0 (h2c prior knowledge) with HTTP/1.1 fallback:
+
+```
+httest -http2
+curl -i --http2-prior-knowledge http://127.0.0.1:9000
+```
+
+Run HTTPS with HTTP/2.0 enabled (see also HTTP support below):
+
+```
+httest -http2 -cert ./cert.pem -cert-key ./key.pem :9443
+curl -i https://127.0.0.1:9443
+```
+
+Without `-http2` option, httest serves HTTP/1.1 only. Cleartext HTTP/2 uses
+prior knowledge.
+
+## HTTPS support
+
+There is an example of using a self-signed certificate.
+
+1. Create CA certificate:
+
+```
+openssl genrsa -out root_ca.key 4096
+openssl req -x509 -new -sha256 \
+  -key root_ca.key \
+  -out root_ca.crt \
+  -days 3650 \
+  -subj "/C=EN/O=Example/OU=Security/CN=Example Root CA" \
+  -addext "basicConstraints=critical,CA:TRUE,pathlen:1" \
+  -addext "keyUsage=critical,keyCertSign,cRLSign" \
+  -addext "subjectKeyIdentifier=hash"
+```
+
+2. Create server certificate:
+
+```
+openssl genrsa -out server.key 4096
+openssl req -new \
+  -key server.key \
+  -out server.csr \
+  -sha256 \
+  -subj "/C=EN/O=Example/OU=IT/CN=example.local" \
+  -addext "subjectAltName=DNS:example.local,DNS:localhost,IP:127.0.0.1"
+cat > server-ext.cnf <<'EOF'
+basicConstraints = critical, CA:FALSE
+keyUsage = critical, digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth
+subjectAltName = DNS:example.local, DNS:localhost, IP:127.0.0.1
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid,issuer
+EOF
+openssl x509 -req \
+  -in server.csr \
+  -CA root_ca.crt \
+  -CAkey root_ca.key \
+  -CAcreateserial \
+  -out server.crt \
+  -days 825 \
+  -sha256 \
+  -extfile server-ext.cnf
+```
+</details>
+
+3. Run httest with server certificate:
+
+```
+httest -cert server.crt -cert-key server.key
+```
+
+4. Connect to server via HTTPS using CA certificate:
+
+```
+curl -i --cacert root_ca.crt https://localhost:9000
+```
+
 ## Logging
 
 Each processed request is logged as a structured line. Default fields:
 
-`id`, `method`, `path`, `status`, `recv`, `sent`, `elapsed`
+`id`, `protocol`, `method`, `path`, `status`, `recv`, `sent`, `elapsed`
 
 Use `-F` to add or remove fields. Enable logging the request body and headers:
 
@@ -213,6 +232,69 @@ httest -F +all
 ```
 
 See Synopsis above or `httest -help` for details.
+
+## Synopsis
+
+```
+Usage: httest [OPTION]... [ADDR]
+
+ADDR may be an IPv4 or IPv6 address, :PORT, domain name or UNIX socket path.
+
+Options:
+  -help                     print this help message and exit.
+  -version                  print version info and exit.
+  -ipv4                     enable IPv4-only mode.
+  -ipv6                     enable IPv6-only mode.
+  -backlog <int>            max number of parallel connections on socket,
+                            defaults to 128.
+  -http2                    enable HTTP/2.0 with HTTP/1.1 fallback.
+  -cert <string>            TLS certificate path.
+  -cert-key <string>        TLS certificate private key path.
+  -log-level <string>       log level, one of: none, fatal, error, warn,
+                            info, debug, trace.
+  -log-output <string>      where to write logs: stdout, stderr (default) or
+                            filepath.
+  -F, -log-fields <string>  See Log fields control below.
+  -request-id-header <string>
+                            read request ID from header.
+  -respond <int>            response HTTP status code, 200 by default.
+  -H, -respond-header <string> (allowed multiple times)
+                            response header as 'key: value' pair.
+  -respond-body <string>    response body as string.
+  -respond-file <string>    read response body from file.
+  -response-delay <string>  response delay e.g 1s, 3m, 100-900ms, 300 (in
+                            milliseconds by default).
+  -cgi-script <string>      path to CGI script to execute for each request.
+                            All static -respond* options is ignored.
+
+Log fields control:
+  Below are listed all available log fields in the order they appear in the
+  logs. Fields marked by * are non-defaults.
+
+    id          auto-generated or passed through -request-id-header request ID.
+    protocol    used HTTP version.
+    method      used HTTP method.
+    path        request path.
+    status      HTTP response status code as integer.
+    recv        size of request body in bytes.
+    sent        size of response body in bytes.
+    elapsed     request processing time excluding HTTP parsing time.
+    remote*     remote address from Remote-Addr header.
+    user_agent* request User-Agent header value.
+    headers*    all request headers separated by `;`.
+    body*       request body text as is.
+
+  You can add or remove fields from the HTTP request log using the -log-fields
+  (-F) option. To add a field, specify its name without a prefix or with a `+`
+  prefix. For example `-F +body` enables request body logging. You can list
+  multiple fields separated by commas. `-` prefix disables the log field.
+  There is also two special values `all` and `default` (for default set).
+  Examples:
+
+    httest -F +headers,body,-id
+    httest -F +all
+    httest -F -default,+id,method,path,status,elapsed
+```
 
 ## License
 

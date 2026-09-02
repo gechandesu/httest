@@ -29,3 +29,11 @@ bin/
 modules/
 
 TODO
+
+# Ignore test TLS certificates
+*.crt
+*.key
+*.pem
+*.cnf
+*.csr
+*.srl
