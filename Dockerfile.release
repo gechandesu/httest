@@ -1,0 +1,7 @@
+FROM scratch
+
+ARG BINARY=httest
+
+COPY ${BINARY} /httest
+
+ENTRYPOINT ["/httest"]
