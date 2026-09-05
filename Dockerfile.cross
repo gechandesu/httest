@@ -1,7 +1,7 @@
 FROM debian:trixie
 
 ENV DEBIAN_FRONTEND=noninteractive
-ENV VFLAGS=-old-compiler
+ENV VFLAGS=-no-memory-limit
 
 RUN export DEBIAN_FRONTEND=noninteractive && \
     apt-get update && \
