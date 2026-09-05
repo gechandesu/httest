@@ -60,6 +60,7 @@ jobs:
           prerelease: false
 
   build-docker-images:
+    needs: build-binaries
     runs-on: ubuntu-latest
     permissions:
       contents: read
