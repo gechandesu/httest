@@ -49,6 +49,8 @@ jobs:
         run: |
           v install https://github.com/gechandesu/releasekit
           v release.vsh
+          pwd
+          ls -alFh .
 
       - name: Create GitHub Release
         uses: ncipollo/release-action@v1
