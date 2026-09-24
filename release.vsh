@@ -9,7 +9,7 @@ const docker_image = os.getenv_opt('DOCKER_IMAGE') or { 'httest-builder' }
 const docker_file = 'Dockerfile.cross'
 
 const manifest = rk.manifest()
-const version = if envver := os.getenv_opt('VERSION') { envver } else { manifest.version }
+const version = os.getenv_opt('VERSION') or { manifest.version }
 
 const common = rk.Build{
 	name:    manifest.name
@@ -43,12 +43,13 @@ const targets = {
 		arch: 'riscv64'
 		cc:   'riscv64-linux-gnu-gcc'
 	}
-	'windows/amd64': rk.Build{
-		...common
-		os:   'windows'
-		arch: 'amd64'
-		cc:   'x86_64-w64-mingw32-gcc'
-	}
+	// Temporary disable MS Windows build due V compiler failure...
+	// 'windows/amd64': rk.Build{
+	// 	...common
+	// 	os:   'windows'
+	// 	arch: 'amd64'
+	// 	cc:   'x86_64-w64-mingw32-gcc'
+	// }
 }
 
 mut ctx := build.context(default: 'all')
@@ -79,7 +80,7 @@ for target_name, target in targets {
 ctx.task(
 	name: 'all'
 	help: 'Build app for all targets'
-	run:  || true
+	run:  fn (_ build.Task) ! {}
 
 	depends: targets.keys()
 )
