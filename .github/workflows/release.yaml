@@ -79,22 +79,6 @@ jobs:
       packages: write
       id-token: write
 
-    strategy:
-      matrix:
-        include:
-          - arch: amd64
-            platform: linux/amd64
-            binary: httest_${{ github.ref_name }}_linux_amd64
-          - arch: arm32
-            platform: linux/arm/v7
-            binary: httest_${{ github.ref_name }}_linux_arm32
-          - arch: arm64
-            platform: linux/arm64
-            binary: httest_${{ github.ref_name }}_linux_arm64
-          - arch: riscv64
-            platform: linux/riscv64
-            binary: httest_${{ github.ref_name }}_linux_riscv64
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -104,6 +88,18 @@ jobs:
         with:
           name: linux-binaries
           path: .
+
+      - name: Prepare binaries
+        run: |
+          for binary in httest_*_linux_*; do
+            arch="${binary##*_linux_}"
+            case "$arch" in
+              arm32) platform='linux/arm/v7' ;;
+              *)     platform="linux/$arch" ;;
+            esac
+            install -D -m 0755 -v "$binary" "dist/$platform/httest"
+          done
+          find dist -type f -exec ls -alFh {} +
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -115,12 +111,15 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push Docker image for ${{ matrix.arch }}
+      - name: Build and push Docker image
         id: build-and-push
         uses: docker/build-push-action@v7
         with:
-          build-args: BINARY=${{ matrix.binary }}
-          platforms: ${{ matrix.platform }}
+          platforms: |
+            linux/amd64
+            linux/arm/v7
+            linux/arm64
+            linux/riscv64
           context: .
           file: Dockerfile.release
           push: true

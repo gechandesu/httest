@@ -1,7 +1,7 @@
 FROM scratch
 
-ARG BINARY=httest
+ARG TARGETPLATFORM
 
-COPY ${BINARY} /httest
+COPY dist/${TARGETPLATFORM}/httest /httest
 
 ENTRYPOINT ["/httest"]
