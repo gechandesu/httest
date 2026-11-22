@@ -266,6 +266,9 @@ Options:
                             milliseconds by default).
   -cgi-script <string>      path to CGI script to execute for each request.
                             All static -respond* options is ignored.
+  -protobuf                 try to decode Protocol Buffers messages in
+                            request bodies and output their JSON
+                            representation in log.
 
 Log fields control:
   Below are listed all available log fields in the order they appear in the
