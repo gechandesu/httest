@@ -43,6 +43,7 @@ mut:
 	respond_file      string   @[xdoc: 'read response body from file.']
 	response_delay    string   @[xdoc: 'response delay e.g 1s, 3m, 100-900ms, 300 (in milliseconds by default).']
 	cgi_script        string   @[xdoc: 'path to CGI script to execute for each request. All static -respond* options is ignored.']
+	protobuf bool @[xdoc: 'try to decode Protocol Buffers messages in request bodies and output their JSON representation in log.']
 }
 
 const help_header = 'Usage: ${name} [OPTION]... [ADDR]

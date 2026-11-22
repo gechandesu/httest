@@ -2,11 +2,13 @@
 
 import build
 import os
+import os.cmdline
 import releasekit as rk
 
 const docker_user = os.getenv_opt('DOCKER_USER') or { '1000:1000' }
 const docker_image = os.getenv_opt('DOCKER_IMAGE') or { 'httest-builder' }
 const docker_file = 'Dockerfile.cross'
+const docker_opts = os.getenv_opt('DOCKER_OPTS') or { '' }
 
 const manifest = rk.manifest()
 const version = os.getenv_opt('VERSION') or { manifest.version }
@@ -43,13 +45,12 @@ const targets = {
 		arch: 'riscv64'
 		cc:   'riscv64-linux-gnu-gcc'
 	}
-	// Temporary disable MS Windows build due V compiler failure...
-	// 'windows/amd64': rk.Build{
-	// 	...common
-	// 	os:   'windows'
-	// 	arch: 'amd64'
-	// 	cc:   'x86_64-w64-mingw32-gcc'
-	// }
+	'windows/amd64': rk.Build{
+		...common
+		os:   'windows'
+		arch: 'amd64'
+		cc:   'x86_64-w64-mingw32-gcc'
+	}
 }
 
 mut ctx := build.context(default: 'all')
@@ -57,8 +58,8 @@ mut ctx := build.context(default: 'all')
 ctx.task(
 	name: 'docker-image'
 	help: 'Build Docker image with cross-compilation environment'
-	run:  || rk.run_or_fail('docker', 'build', '-t', docker_image + ':latest', '.', '-f',
-		docker_file)!
+	run:  || rk.run_or_fail(...['docker', 'build', '-t', docker_image + ':latest', '.', '-f',
+		docker_file, ...cmdline.split(docker_opts)!])!
 )
 
 for target_name, target in targets {

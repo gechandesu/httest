@@ -14,6 +14,8 @@
 */
 module main
 
+import encoding.base64
+import encoding.utf8.validate as utf8validate
 import net.http
 import os
 import rand
@@ -28,6 +30,7 @@ fn setup_request_handler(pref Preferences, log structlog.StructuredLog) !HTTPReq
 	handler.request_id_header = pref.request_id_header
 	handler.response_code = pref.respond
 	handler.response_body = pref.respond_body
+	handler.protobuf_repr = pref.protobuf
 	for header in pref.respond_header {
 		// vfmt off
 		header_key, header_value := header.split_once(':') or { '', '' }
@@ -158,9 +161,10 @@ mut:
 	response_body     string
 	response_delay    ?DelayFn
 	cgi_script        string
+	protobuf_repr     bool
 }
 
-type DelayFn = fn() time.Duration
+type DelayFn = fn () time.Duration
 
 fn (mut handler HTTPRequestHandler) handle(req http.Request) http.Response {
 	started_at := time.now()
@@ -176,9 +180,9 @@ fn (mut handler HTTPRequestHandler) handle(req http.Request) http.Response {
 	}
 
 	mut response := http.Response{
-		body: handler.response_body
+		body:        handler.response_body
 		status_code: handler.response_code
-		header: http.new_custom_header_from_map(handler.response_headers) or { http.Header{} }
+		header:      http.new_custom_header_from_map(handler.response_headers) or { http.Header{} }
 	}
 
 	defer {
@@ -197,8 +201,24 @@ fn (mut handler HTTPRequestHandler) handle(req http.Request) http.Response {
 		if lf.has(.remote)     { f << structlog.Field{name: 'remote', value: req.header.get_custom('remote-addr', exact: false) or { '' } } }
 		if lf.has(.user_agent) { f << structlog.Field{name: 'user_agent', value: req.header.get_custom('user-agent', exact: false) or { '' }} }
 		if lf.has(.headers)    { f << structlog.Field{name: 'headers', value: req.header.str().split_into_lines().join('; ')} }
-		if lf.has(.body)       { f << structlog.Field{name: 'body', value: req.data.trim_space_right()} }
 		// vfmt on
+		if lf.has(.body) {
+			if utf8validate.utf8_string(req.data) {
+				f << structlog.Field{ name: 'body', value: req.data.trim_space_right() }
+			} else {
+				body_bytes := req.data.bytes()
+				if handler.protobuf_repr {
+					f << structlog.Field{
+						name:  'body'
+						value: decode_protobuf(req.data.bytes()) or {
+							'protobuf body (base64): ${base64.encode(body_bytes).str()}'
+						}.str()
+					}
+				} else {
+					f << structlog.Field{ name: 'body', value: 'binary body (base64): ${base64.encode(body_bytes).str()}' }
+				}
+			}
+		}
 		handler.log.info().append(...f).send()
 	}
 
